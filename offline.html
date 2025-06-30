@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<!-- this site was made by tymoteusz mazurek -->
+<html lang="pl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>offlineError</title>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap');
+            
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: 'Montserrat', sans-serif;
+            }
+            
+            html, body {
+                height: 100%;
+                display: flex;
+                align-items: center;
+                background-color: #e74c3c;
+                overflow: hidden;
+            }
+            
+            .main-body {
+                height: 100vh;
+                width: 100vw;
+            }
+            
+            .main-body-top {
+                display: flex;
+                height: 80vh;
+                width: 100vw;
+            }
+            
+            .news-feed {
+                padding-top: 40px;
+                padding-left: 40px;
+                height: 80vh;
+                width: 67vw;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                hyphens: auto;
+            }
+            
+            .substitution-feed {
+                height: 80vh;
+                width: 33vw;
+                border-left: #ffffff 10px outset;
+                padding-left: 20px;
+                padding-top: 20px;
+                background-color: #ffffff;
+            }
+            
+            .substitution-feed h1 {
+                font-weight: 700;
+                font-size: 3em;
+                color: #e74c3c;
+                margin-bottom: 40px;
+            }
+            
+            .substitution-feed p {
+                font-weight: 700;
+                font-size: 1.5em;
+            }
+            
+            .substitution-feed h2 {
+                font-weight: 700;
+                font-size: 2em;
+                color: #e74c3c;
+                margin-bottom: 40px;
+            }
+            
+            .bottom-bar {
+                height: 14vh;
+                width: 100vw;
+                background-color: #e74c3c;
+                color: #ffffff;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 20px 40px;
+                font-size: 1.2em;
+                box-sizing: border-box;
+                position: relative;
+            }
+            
+            .logo {
+                height: 110px;
+                margin-right: 10px;
+            }
+            
+            .countdown-bar {
+                height: 6vh;
+                width: 100vw;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-color: #ffffff;
+            }
+            
+            .info {
+                font-family: 'Montserrat', sans-serif;
+                font-weight: 700;
+                font-size: 1.7em;
+                color: #ffffff;
+                text-align: right;
+                white-space: nowrap;
+            }
+            
+            #header {
+                color: #ffffff;
+                font-size: 5em;
+                margin-bottom: 20px;
+                margin-top: 20px;
+                width: 64vw;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                hyphens: auto;
+            }
+            
+            #description {
+                color: #ffffff;
+                font-size: 3.5em;
+                margin-top: 60px;
+                font-weight: bold;
+                width: 64vw;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                hyphens: auto;
+            }
+          #quote {
+                color: #ffffff;
+                font-size: 2.4em;
+                margin-top: 60px;
+                font-weight: bold;
+                width: 64vw;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                hyphens: auto;
+            }
+            
+            .news-feed video {
+                max-width: 100%;
+                max-height: 100%;
+                border: 2px solid #e74c3c;
+                border-radius: 10px;
+            }
+            
+            .qr {
+                height: 200px;
+                width: 200px;
+                margin-left: -20px;
+                margin-top: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="main-body">
+            <div class="main-body-top">
+                <div class="news-feed">
+                    <h1 id="header">zmianawplanie.pl jest tymczasowo niedostępna.</h1>
+                    <p id="description">Przepraszamy za utrudnienia.</p><br><br><br><p id="quote"><i>Trzeba mieć radość w myśleniu i myślenie w radości.</i></p>
+                </div>
+                <div class="substitution-feed">
+                    <h1>Aplikacja jest również tymczasowo niedostępna.</h1>
+                </div>
+            </div>
+            <div class="bottom-bar">
+                <img class="logo" src="media/tischner-logo-lewy.png" alt="TW">
+                <div class="info" id="date-time"></div>
+            </div>
+            <div class="countdown-bar">
+                <p>offline</p>
+            </div>
+        </div>
+
+        <script>
+            function updateDateTime() {
+                const days = ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota'];
+                const months = [
+                    'stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 
+                    'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'
+                ];
+
+                const now = new Date();
+                const dayName = days[now.getDay()];
+                const day = now.getDate();
+                const monthName = months[now.getMonth()];
+                const year = now.getFullYear();
+                const time = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+
+                const dateTimeString = `${dayName}, ${day} ${monthName} ${year}, ${time}`;
+                document.getElementById('date-time').textContent = dateTimeString;
+            }
+
+            
+            setInterval(updateDateTime, 1000);
+
+            
+            updateDateTime();
+
+            
+            function checkConnection() {
+                if (navigator.onLine) {
+                    
+                    window.location.href = 'display.html';
+                }
+            }
+            setInterval(checkConnection, 10000); 
+        </script>
+
+        <!-- Rejestracja Service Worker -->
+        <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+            navigator.serviceWorker.register('service-worker.js')
+                .then((registration) => {
+                console.log('Service Worker zarejestrowany pomyślnie:', registration.scope);
+                })
+                .catch((error) => {
+                console.error('Błąd rejestracji Service Worker:', error);
+                });
+            });
+        }
+        </script>
+    </body>
+</html>

@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<!-- this site was made by tymoteusz mazurek -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zmiana W Planie - ZSP Wodzisław Śląski - Tablica</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+        html {
+            background-color: #151515;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.5em;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .section {
+            display: inline-block;
+            width: 33vw;
+            vertical-align: top;
+            margin-right: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .table-container {
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+            color: #c6c6c6;
+        }
+
+        table {
+            width: 100%;
+            border-left: 20px solid #151515;
+            border-collapse: collapse;
+        }
+
+        .table-content {
+            transition: transform 0.8s ease-in-out;
+        }
+
+        #classesLSP table {
+            border-left: 20px solid #151515;
+        }
+
+        th, td {
+            border: 0 solid #2a2a2a;
+            padding: 15px;
+            text-align: left;
+            border-bottom: 4px solid #060606;
+        }
+
+        tr {
+            border-radius: 500px;
+            background-color: #2c2c2c;
+        }
+
+        tr.odwolane-1 {
+            border-left: 20px solid #E73544;
+        }
+        tr.przeniesienie-1 {
+            border-left: 20px solid #dc9700;
+        }
+        tr.standardowa-lekcja {
+            border-left: 20px solid #4A90E2;
+        }
+
+        th {
+            background-color: #ffffff;
+        }
+
+        #classesLSP td.title {
+            color: #E73544;
+        }
+
+        .summary {
+            text-align: center;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        .strikethrough {
+            text-decoration: line-through;
+        }
+
+        .title {
+            color: #4A90E2;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        .boldText {
+            font-weight: bold;
+        }
+
+        .bottom-bar {
+            height: 10vh;
+            width: calc(94vw + 20px);
+            background-color: #4A90E2;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 40px;
+            font-size: 1.2em;
+            box-sizing: border-box;
+            position: fixed;
+            top: 80vh;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 30px 30px 0 0;
+            z-index: 1000;
+        }
+
+        .logo {
+            height: 110px;
+            margin-right: 10px;
+        }
+
+        .countdown-bar {
+            height: 8vh;
+            width: 94vw;
+            display: flex;
+            align-items: center;
+            position: fixed;
+            top: 90vh;
+            background-color: #1f1f1f;
+            color: #c6c6c6;
+            font-weight: 600;
+            padding-left: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.5em;
+            border-radius: 0 0 30px 30px;
+            z-index: 999;
+        }
+
+        .info {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 1.3em;
+            color: white;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .note {
+            font-style: italic;
+            color: #E73544;
+            margin-top: 5px;
+        }
+
+        .blur-overlay {
+            position: fixed;
+            top: 80vh;
+            left: 0;
+            width: 100vw;
+            height: 20vh;
+            z-index: 800;
+            pointer-events: none; /* żeby nie przeszkadzało w klikaniu */
+            background: linear-gradient(
+                to bottom,
+                #15151500 0%,
+                #15151540 30%,
+                #151515ae 60%,
+                #151515 100%
+            );
+            overflow: hidden;
+        }
+
+        .blur-overlay::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            backdrop-filter: blur(0px);
+            -webkit-backdrop-filter: blur(0px);
+            background: transparent;
+            mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+        }
+
+        .blur-overlay::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            background: transparent;
+            mask-image: linear-gradient(to bottom, transparent 0%, black 100%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 100%);
+        }
+
+        
+
+        /* Usunięto style dla scrolling-indicator i scrolling-progress */
+    </style>
+</head>
+<body>
+
+    <div class="blur-overlay"></div>
+
+    <div id="classes12" class="section">
+        <div class="table-container">
+            <table id="subTable12">
+                <thead><tr></tr></thead>
+                <tbody></tbody>
+            </table>
+            <!-- Usunięto div scrolling-indicator -->
+        </div>
+        <div class="summary" id="summary12"></div>
+    </div>
+
+    <div id="classes34" class="section">
+        <div class="table-container">
+            <table id="subTable34">
+                <thead><tr></tr></thead>
+                <tbody></tbody>
+            </table>
+            <!-- Usunięto div scrolling-indicator -->
+        </div>
+        <div class="summary" id="summary34"></div>
+    </div>
+
+    <div id="classesLSP" class="section">
+        <div class="table-container">
+            <table id="subTableLSP">
+                <thead><tr></tr></thead>
+                <tbody></tbody>
+            </table>
+            <!-- Usunięto div scrolling-indicator -->
+        </div>
+        <div class="summary" id="summaryLSP"></div>
+    </div>
+
+    <div class="summary" id="totalSummary"></div>
+
+    <div class="bottom-bar">
+        <img class="logo" src="media/tischner-logo-lewy.png" alt="TN">
+        <div class="info" id="date-time"></div>
+    </div>
+    <div class="countdown-bar">
+        <p>system e-zastępstwa dostarcza zmianawplanie.pl</p>
+    </div>
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+            .then((registration) => {
+            console.log('Service Worker zarejestrowany pomyślnie:', registration.scope);
+            })
+            .catch((error) => {
+            console.error('Błąd rejestracji Service Worker:', error);
+            });
+        });
+    }
+
+    function checkConnection() {
+        if (!navigator.onLine) {
+            // Przekieruj na offline.html, jeśli nie ma połączenia
+            window.location.href = 'offline.html';
+        }
+        }
+
+        // Sprawdzaj połączenie co 10 sekund
+        setInterval(checkConnection, 10000);
+    </script>
+    <script>
+
+        // Harmonogram lekcji i przerw (można edytować)
+        const schedule = [
+            { type: 'lesson', start: '08:00', end: '08:45' },
+            { type: 'break', start: '08:45', end: '08:55' },
+            { type: 'lesson', start: '08:55', end: '09:40' },
+            { type: 'break', start: '09:40', end: '09:45' },
+            { type: 'lesson', start: '09:45', end: '10:30' },
+            { type: 'break', start: '10:30', end: '10:45' },
+            { type: 'lesson', start: '10:45', end: '11:30' },
+            { type: 'break', start: '11:30', end: '11:35' },
+            { type: 'lesson', start: '11:35', end: '12:20' },
+            { type: 'break', start: '12:20', end: '12:25' },
+            { type: 'lesson', start: '12:25', end: '13:10' },
+            { type: 'break', start: '13:10', end: '13:15' },
+            { type: 'lesson', start: '13:15', end: '14:00' },
+            { type: 'break', start: '14:00', end: '14:05' },
+            { type: 'lesson', start: '14:05', end: '14:50' },
+            { type: 'break', start: '14:50', end: '14:55' },
+            { type: 'lesson', start: '14:55', end: '15:40' },
+            { type: 'break', start: '15:40', end: '15:45' },
+            { type: 'lesson', start: '15:45', end: '16:30' },
+            { type: 'break', start: '16:30', end: '16:35' },
+            { type: 'lesson', start: '16:35', end: '17:20' },
+        ];
+
+        // Zmodyfikowana funkcja przewijania - znacznie wolniejsze tempo
+        function continuousScroll() {
+            const tables = [
+                { tableId: 'subTable12' },
+                { tableId: 'subTable34' },
+                { tableId: 'subTableLSP' }
+            ];
+            
+            // Znacznie zmniejszona szybkość przewijania
+            const scrollSpeed = 0.05; // piksele na milisekundę - 10x wolniej niż było
+
+            tables.forEach(({ tableId }) => {
+                const table = document.getElementById(tableId);
+                const container = table.parentNode;
+                const tableBody = table.querySelector('tbody');
+                
+                if (table && container && tableBody) {
+                    // Sprawdź, czy tabela wymaga przewijania
+                    const needsScrolling = tableBody.clientHeight > container.clientHeight;
+                    
+                    if (needsScrolling) {
+                        // Dodaj kopię wierszy na dole dla płynnego zapętlenia
+                        const clonedRows = Array.from(tableBody.querySelectorAll('tr')).map(row => row.cloneNode(true));
+                        clonedRows.forEach(row => tableBody.appendChild(row));
+                        
+                        // Całkowita wysokość oryginalnej tabeli
+                        const originalTableHeight = tableBody.clientHeight / 2;
+                        
+                        let scrollPosition = 0;
+                        let lastTimestamp = null;
+                        
+                        function scrollStep(timestamp) {
+                            if (!lastTimestamp) {
+                                lastTimestamp = timestamp;
+                            }
+                            
+                            const elapsed = timestamp - lastTimestamp;
+                            lastTimestamp = timestamp;
+                            
+                            // Aktualizuj pozycję przewijania
+                            scrollPosition += scrollSpeed * elapsed;
+                            
+                            // Resetuj po osiągnięciu końca oryginalnej tabeli
+                            if (scrollPosition >= originalTableHeight) {
+                                scrollPosition = 0;
+                            }
+                            
+                            // Ustaw pozycję przewijania
+                            container.scrollTop = scrollPosition;
+                            
+                            // Usunięto aktualizację paska postępu
+                            
+                            requestAnimationFrame(scrollStep);
+                        }
+                        
+                        requestAnimationFrame(scrollStep);
+                    }
+                }
+            });
+        }
+
+        function updateDateTime() {
+            const days = ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota'];
+            const months = [
+                'stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 
+                'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'
+            ];
+
+            const now = new Date();
+            const dayName = days[now.getDay()];
+            const day = now.getDate();
+            const monthName = months[now.getMonth()];
+            const year = now.getFullYear();
+            const time = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+
+            const dateTimeString = `${dayName}, ${day} ${monthName} ${year}, ${time}`;
+            document.getElementById('date-time').textContent = dateTimeString;
+        }
+
+        function loadSubstitutions() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const filename = `${year}-${month}-${day}.xlsx`;
+            const url = `https://zmianawplanie.pl/uploads/${filename}`;
+
+            fetch(url)
+                .then(response => {
+                if (!response.ok) throw new Error('Brak zastępstw');
+                return response.arrayBuffer();
+                })
+                .then(data => processExcelData(data))
+                .catch(error => {
+                console.error(error);
+                // Przekieruj do strony offline w przypadku błędu sieciowego
+                window.location.href = 'offline.html';
+                });
+            }
+
+        function processExcelData(data) {
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = "Oddziały";
+            const sheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+            const sortedData = jsonData.map(row => {
+                let baseClass = row.Oddział || "";
+                let numericPart = parseInt(baseClass.match(/\d+/), 10);
+                let alphabeticalPart = baseClass.match(/[A-Z]+/)?.[0] || "";
+
+                if (alphabeticalPart === "PA") alphabeticalPart = "A";
+                if (alphabeticalPart === "PB") alphabeticalPart = "B";
+                if (alphabeticalPart === "LSP") alphabeticalPart = "";
+
+                baseClass = `${numericPart}${alphabeticalPart}`;
+                return { ...row, baseClass, numericPart, alphabeticalPart, originalClass: row.Oddział };
+            }).sort((a, b) => {
+                return a.numericPart - b.numericPart || a.alphabeticalPart.localeCompare(b.alphabeticalPart);
+            });
+
+            const classes12 = sortedData.filter(row => 
+                row.numericPart >= 1 && row.numericPart <= 2 && !row.originalClass.includes("LSP") && !row.originalClass.includes("PA") && !row.originalClass.includes("PB")
+            );
+            const classes34 = sortedData.filter(row => 
+                row.numericPart >= 3 && row.numericPart <= 4 && !row.originalClass.includes("LSP") && !row.originalClass.includes("PA") && !row.originalClass.includes("PB")
+            );
+            const classesLSP = sortedData.filter(row => 
+                row.originalClass.includes("LSP") || row.originalClass.includes("PA") || row.originalClass.includes("PB")
+            );
+
+            const generateZastępstwaString = (row) => {
+                const lekcja = row.Lekcja ? `Lekcja: ${row.Lekcja}<br>` : '';
+                
+                // Określenie typu zastępstwa
+                const odwołane = row.Zastępca && ["Okienko dla uczniów", "Uczniowie zwolnieni do domu", "Uczniowie przychodzą później"].includes(row.Zastępca);
+                const przeniesienie = row.Uwagi && (row.Uwagi.toLowerCase().includes("przeniesion") || row.Uwagi.toLowerCase().includes("z lekcji"));
+                
+                const nauczyciel = row["Nauczyciel/wakat"] || '';
+                const zastępca = row.Zastępca || '';
+
+                const shortenName = (name) => {
+                    if (!name) return name;
+                    if (name === "Okienko dla uczniów") return name;
+                    if (name === "Uczniowie zwolnieni do domu") return name;
+                    if (name === "Uczniowie przychodzą później") return name;
+                    const parts = name.split(' ');
+                    if (parts.length === 2) {
+                        return `${parts[1].charAt(0)}. ${parts[0]}`; // Zmiana kolejności
+                    } else if (parts.length === 3) {
+                        return `${parts[2].charAt(0)}. ${parts[0]} ${parts[1]}`; // Zmiana kolejności
+                    }
+                    return name;
+                };
+
+                const nauczycielShort = shortenName(nauczyciel);
+                const zastępcaShort = odwołane ? (row.Zastępca || '') : shortenName(zastępca);
+
+                const subjectShortcuts = {
+                    "Doradztwo zawodowe": "DZ",
+                    "Biznes i zarządzanie": "BiZ",
+                    "Historia i teraźniejszość": "HiT",
+                    "Podstawy warsztatu dziennikarskiego": "PWD",
+                    "Podstawy przedsiębiorczości": "PP",
+                    "Zajęcia biblioteczne": "Z. biblioteczne",
+                    "Zajęcia pedagogiczne": "Z. pedagogiczne",
+                    "Projektowanie multimedialne": "P. multimedialne",
+                    "Specjalność artystyczna": "S. artystyczna",
+                    "Historia sztuki": "H. sztuki"
+                };
+
+                const applyShortcuts = (text) => {
+                    if (!text) return text;
+                    text = text.replace(/\bJęzyk\b/g, "J.");
+                    Object.keys(subjectShortcuts).forEach(fullName => {
+                        const shortcut = subjectShortcuts[fullName];
+                        text = text.replace(new RegExp(fullName, "g"), shortcut);
+                    });
+                    return text;
+                };
+
+                const przedmiot = applyShortcuts(row.Przedmiot || '');
+
+                // Określenie klasy wiersza - to jest kluczowe dla kolorowania
+                let rowClass = '';
+                if (odwołane) {
+                    rowClass = 'odwolane-1';
+                    console.log("Odwołana lekcja:", row.Oddział, row.Lekcja);
+                } else if (przeniesienie) {
+                    rowClass = 'przeniesienie-1';
+                    console.log("Przeniesienie lekcji:", row.Oddział, row.Lekcja, row.Uwagi);
+                } else {
+                    rowClass = 'standardowa-lekcja';
+                }
+
+                // Formatowanie danych o przedmiocie i sali
+                let przedmiotSala = '';
+                if (odwołane) {
+                    if (row.Uwagi && row.Uwagi.trim() !== '') {
+                        przedmiotSala = `<span class="strikethrough">${przedmiot}, ${row.Sala || ''}</span> → ${row.Uwagi}<br>`;
+                    } else {
+                        przedmiotSala = `<span class="strikethrough">${przedmiot}, ${row.Sala || ''}</span> → ${zastępcaShort}<br>`;
+                    }
+                } else if (przeniesienie) {
+                    // Specjalne formatowanie dla przeniesionych lekcji
+                    przedmiotSala = `<span class="strikethrough">${przedmiot}, ${row.Sala || ''}</span> → ${row.Uwagi}<br>`;
+                } else {
+                    przedmiotSala = `<span class="boldText">${przedmiot}</span>, ${row.Sala || ''}<br>`;
+                }
+
+                // Formatowanie informacji o nauczycielu i zastępcy
+                let nauczycielZastępca = '';
+                if (odwołane) {
+                    nauczycielZastępca = `<span class="strikethrough">${nauczycielShort}</span><br>`;
+                } else if (przeniesienie) {
+                    nauczycielZastępca = `<span class="strikethrough">${nauczycielShort}</span><br>`;
+                } else if (nauczyciel && zastępca) {
+                    nauczycielZastępca = `<span class="strikethrough">${nauczycielShort}</span> → ${zastępcaShort}<br>`;
+                } else {
+                    nauczycielZastępca = nauczycielShort ? `${nauczycielShort}<br>` : (zastępcaShort ? `${zastępcaShort}<br>` : '');
+                }
+
+                // Sprawdzanie i obsługa pola Uwagi - tylko jeśli nie użyto już w przypadku odwołania lub przeniesienia
+                let uwagiElement = '';
+                if (row.Uwagi && row.Uwagi.trim() !== '' && !odwołane && !przeniesienie) {
+                    uwagiElement = `<div class="note">Uwaga: ${row.Uwagi}</div>`;
+                }
+
+                // Znajdź automatyczne zastępstwo
+                let autoZastępstwo = '';
+                if (!zastępca && !odwołane && !przeniesienie) {
+                    // Jeśli nie ma zastępcy i nie jest odwołane/przeniesione, spróbuj znaleźć dostępnego nauczyciela
+                    if (przedmiot.includes("Matematyka")) {
+                        autoZastępstwo = `<div class="note">Sugerowane zastępstwo: Sosnowski Paweł (Matematyka)</div>`;
+                    } else if (przedmiot.includes("Fizyka")) {
+                        autoZastępstwo = `<div class="note">Sugerowane zastępstwo: Winkler Tadeusz (Fizyka)</div>`;
+                    } else if (przedmiot.includes("Angielski") || przedmiot.includes("J. angielski")) {
+                        autoZastępstwo = `<div class="note">Sugerowane zastępstwo: Dzierżęga Marta (J. angielski)</div>`;
+                    } else if (przedmiot.includes("Polski") || przedmiot.includes("J. polski")) {
+                        autoZastępstwo = `<div class="note">Sugerowane zastępstwo: Matys Helena (J. polski)</div>`;
+                    } else if (przedmiot.includes("Historia")) {
+                        autoZastępstwo = `<div class="note">Sugerowane zastępstwo: Materzok Wiktoria (Historia)</div>`;
+                    }
+                }
+
+                return {
+                    html: lekcja + przedmiotSala + nauczycielZastępca + uwagiElement + autoZastępstwo,
+                    rowClass
+                };
+            };
+
+            const populateTable = (data, tableId, summaryId) => {
+                const tableBody = document.querySelector(`#${tableId} tbody`);
+                tableBody.innerHTML = '';
+                let zastępstwaCount = 0;
+                data.forEach(row => {
+                    const { html, rowClass } = generateZastępstwaString(row);
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td class="title">${row.baseClass || ''}</td><td>${html}</td>`;
+                    if (rowClass) tr.className = rowClass;
+                    tableBody.appendChild(tr);
+                    zastępstwaCount++;
+                });
+                document.getElementById(summaryId).innerText = `Liczba zastępstw: ${zastępstwaCount}`;
+                const container = tableBody.parentNode;
+                container.scrollTop = 0;
+                return zastępstwaCount;
+            };
+
+            const count12 = populateTable(classes12, 'subTable12', 'summary12');
+            const count34 = populateTable(classes34, 'subTable34', 'summary34');
+            const countLSP = populateTable(classesLSP, 'subTableLSP', 'summaryLSP');
+
+            const totalCount = count12 + count34 + countLSP;
+            document.getElementById('totalSummary').innerText = `Łączna liczba zastępstw: ${totalCount}`;
+            
+            // Inicjuj ciągłe przewijanie po wczytaniu danych
+            setTimeout(continuousScroll, 500);
+        }
+
+        function displayNoSubstitutions() {
+            document.querySelectorAll('.section tbody').forEach(tbody => {
+                tbody.innerHTML = '<tr><td colspan="2">Brak zastępstw na dziś</td></tr>';
+            });
+            document.getElementById('totalSummary').innerText = 'Brak zastępstw na dzień dzisiejszy';
+        }
+
+        function refreshPage() {
+            window.location.reload();
+        }
+
+        function updateCountdown() {
+            const now = new Date();
+            const currentTime = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+            let nextEvent = null;
+
+            for (const event of schedule) {
+                const eventStart = parseInt(event.start.split(':')[0]) * 3600 + parseInt(event.start.split(':')[1]) * 60;
+                const eventEnd = parseInt(event.end.split(':')[0]) * 3600 + parseInt(event.end.split(':')[1]) * 60;
+
+                if (currentTime < eventStart) {
+                    nextEvent = { type: 'event', time: eventStart - currentTime };
+                    break;
+                } else if (currentTime >= eventStart && currentTime < eventEnd) {
+                    nextEvent = { type: event.type, time: eventEnd - currentTime };
+                    break;
+                }
+            }
+
+            if (!nextEvent) {
+                document.querySelector('.countdown-bar p').textContent = 'Brak lekcji dzisiaj';
+                return;
+            }
+
+            const hours = Math.floor(nextEvent.time / 3600);
+            const minutes = Math.floor((nextEvent.time % 3600) / 60);
+            const seconds = nextEvent.time % 60;
+
+            let countdownText = '';
+            if (hours > 0) {
+                countdownText += `${hours}:`;
+            }
+            countdownText += `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+            if (nextEvent.type === 'lesson') {
+                countdownText = `Do końca lekcji pozostało: ${countdownText}`;
+            } else if (nextEvent.type === 'break') {
+                countdownText = `Do końca przerwy pozostało: ${countdownText}`;
+            }
+
+            document.querySelector('.countdown-bar p').textContent = countdownText;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            updateDateTime();
+            loadSubstitutions();
+            setInterval(updateDateTime, 1000);
+            setInterval(updateCountdown, 1000);
+            setInterval(refreshPage, 3 * 60 * 1000); // Odśwież stronę co 3 minuty
+        });
+    </script>
+</body>
+</html>

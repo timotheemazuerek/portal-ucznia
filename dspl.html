@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>Tablica zastępstw</title>
+    <link rel="stylesheet" href="styles/display.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        .scrollable-content {
+            overflow: hidden;
+            position: relative;
+            height: 100%;
+        }
+        
+        .scroll-content {
+            position: absolute;
+            width: 100%;
+            will-change: transform;
+        }
+        
+        .clone {
+            position: absolute;
+            left: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="blur-overlay"></div>
+        <div class="columns-container">
+            <div class="column" id="column-1">
+                <div class="scrollable-content" id="scrollable-1">
+                    <div class="scroll-content" id="classes-1-2"></div>
+                </div>
+            </div>
+            <div class="column" id="column-2">
+                <div class="scrollable-content" id="scrollable-2">
+                    <div class="scroll-content" id="classes-3-4"></div>
+                </div>
+            </div>
+            <div class="column" id="column-3">
+                <div class="scrollable-content" id="scrollable-3">
+                    <div class="scroll-content" id="classes-lsp"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="substitutions-container" class="substitutions-container">
+            <div class="loading-indicator">
+                <div class="spinner"></div>
+                <p>Ładowanie zastępstw...</p>
+            </div>
+        </div>
+
+        <div id="no-substitutions" class="no-substitutions hidden">
+            <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <h2>Brak zastępstw na dziś</h2>
+                <p>Sprawdź później lub skontaktuj się z sekretariatem</p>
+            </div>
+        </div>
+
+        <div class="bottom-upper">
+            <h1>Tischner Wodzisław</h1>
+            <p id="current-datetime">data, godzina</p>
+        </div>
+        <div class="bottom-down">
+            <p>Do końca lekcji pozostało</p>
+            <p>Wygenerowano zastępstwa na: <span id="selected-date"></span></p>
+        </div>
+    </main>
+
+    <script src="scripts/sub.js"></script>
+    <script>
+        // Globalne zmienne do kontrolowania przewijania
+        const scrollers = [];
+        let pageLoadTime = Date.now();
+        const SCROLL_SPEED = 1.1; // Stała prędkość przewijania dla wszystkich kolumn (piksele na klatkę)
+        const SCROLL_PAUSE_DURATION = 1000; // Pauza między zapętleniami (ms)
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inicjalizacja czasu
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            
+            // Wczytanie zastępstw
+            loadSubstitutionsForDate(0);
+            
+            // Odświeżanie danych zastępstw (co 3 minuty)
+            setInterval(() => {
+                // Jeśli strona działa już ponad 3 godziny, odświeżamy całą stronę
+                if (Date.now() - pageLoadTime > 3 * 60 * 60 * 1000) {
+                    window.location.reload();
+                    return;
+                }
+                
+                loadSubstitutionsForDate(0);
+                updateTime();
+            }, 3 * 60 * 1000);
+            
+            // Inicjalizacja scrollerów po wczytaniu danych (dodano opóźnienie)
+            setTimeout(initializeScrollers, 1000);
+        });
+
+        // Inicjalizacja mechanizmu płynnego przewijania
+        function initializeScrollers() {
+            const columnIds = ['classes-1-2', 'classes-3-4', 'classes-lsp'];
+            const scrollableIds = ['scrollable-1', 'scrollable-2', 'scrollable-3'];
+            
+            // Zatrzymaj istniejące scrollery
+            scrollers.forEach(scroller => {
+                if (scroller.animationId) {
+                    cancelAnimationFrame(scroller.animationId);
+                }
+            });
+            scrollers.length = 0;
+            
+            // Inicjalizacja nowych scrollerów
+            for (let i = 0; i < columnIds.length; i++) {
+                const contentEl = document.getElementById(columnIds[i]);
+                const scrollableEl = document.getElementById(scrollableIds[i]);
+                
+                // Sprawdź, czy jest zawartość i czy wymaga przewijania
+                if (contentEl && contentEl.children.length > 0) {
+                    // Zresetuj styl transformacji
+                    contentEl.style.transform = 'translateY(0)';
+                    
+                    // Przygotuj dublowanie zawartości dla efektu nieskończonego przewijania
+                    prepareInfiniteScroll(contentEl, scrollableEl);
+                    
+                    const contentHeight = contentEl.offsetHeight;
+                    const viewportHeight = scrollableEl.offsetHeight;
+                    
+                    // Dodaj kontroler scrollowania tylko jeśli zawartość jest większa niż widoczny obszar
+                    if (contentHeight > viewportHeight) {
+                        // Dodaj kontroler scrollowania z jednolitą prędkością
+                        scrollers.push({
+                            contentEl: contentEl,
+                            scrollableEl: scrollableEl,
+                            scrollPosition: 0,
+                            contentHeight: contentHeight,
+                            viewportHeight: viewportHeight,
+                            speed: SCROLL_SPEED, // Stała prędkość dla wszystkich kolumn
+                            animationId: null,
+                            // Dodajemy losowy offset początkowy, aby kolumny nie były zsynchronizowane
+                            initialOffset: Math.random() * contentHeight * 0.5, // Ograniczamy do 50% wysokości dla lepszego efektu
+                            isPaused: false,
+                            pauseStartTime: 0,
+                            clones: []
+                        });
+                        
+                        // Zastosuj losowy offset początkowy
+                        const lastScroller = scrollers[scrollers.length - 1];
+                        lastScroller.scrollPosition = lastScroller.initialOffset;
+                        contentEl.style.transform = `translateY(-${lastScroller.scrollPosition}px)`;
+                    }
+                }
+            }
+            
+            // Uruchom animację przewijania
+            if (scrollers.length > 0) {
+                animateScrolling();
+            }
+        }
+
+        // Przygotowanie zawartości do przewijania nieskończonego
+        function prepareInfiniteScroll(contentEl, scrollableEl) {
+            // Usuń istniejące klony
+            const existingClones = scrollableEl.querySelectorAll('.clone');
+            existingClones.forEach(clone => clone.remove());
+            
+            // Dodaj wystarczającą liczbę klonów aby pokryć cały obszar przewijania
+            const contentHeight = contentEl.offsetHeight;
+            const viewportHeight = scrollableEl.offsetHeight;
+            
+            // Potrzebujemy co najmniej dwa pełne zestawy kart aby zapewnić płynne przewijanie
+            const clones = [];
+            
+            // Dodaj pierwszy klon na dole oryginalnej zawartości
+            const clone1 = contentEl.cloneNode(true);
+            clone1.classList.add('clone');
+            clone1.style.top = contentHeight + 'px';
+            scrollableEl.appendChild(clone1);
+            clones.push(clone1);
+            
+            // Jeśli zawartość jest mniejsza niż widoczny obszar, dodaj kolejne klony
+            if (contentHeight < viewportHeight) {
+                // Dodaj wystarczającą liczbę klonów, aby wypełnić widoczny obszar i umożliwić przewijanie
+                let currentHeight = contentHeight * 2; // Już mamy oryginalną zawartość + jeden klon
+                let cloneIndex = 2;
+                
+                while (currentHeight < viewportHeight * 3) { // Zapewnij co najmniej 3 pełne ekrany zawartości
+                    const nextClone = contentEl.cloneNode(true);
+                    nextClone.classList.add('clone');
+                    nextClone.style.top = currentHeight + 'px';
+                    scrollableEl.appendChild(nextClone);
+                    clones.push(nextClone);
+                    
+                    currentHeight += contentHeight;
+                    cloneIndex++;
+                }
+            }
+            
+            // Zapisz referencje do klonów w obiekcie scrollera
+            const currentScrollerIndex = scrollers.length;
+            if (scrollers[currentScrollerIndex]) {
+                scrollers[currentScrollerIndex].clones = clones;
+            }
+            
+            return clones;
+        }
+
+        // Funkcja animacji przewijania
+        function animateScrolling() {
+            scrollers.forEach(scroller => {
+                // Sprawdź, czy scroller jest w stanie pauzy
+                if (scroller.isPaused) {
+                    if (Date.now() - scroller.pauseStartTime > SCROLL_PAUSE_DURATION) {
+                        // Zakończ pauzę
+                        scroller.isPaused = false;
+                        
+                        // Resetuj pozycję na początek
+                        scroller.scrollPosition = 0;
+                        scroller.contentEl.style.transform = `translateY(0)`;
+                    }
+                    return; // Pomiń ten scroller, jeśli jest w pauzie
+                }
+                
+                // Inkrementuj pozycję o stałą wartość prędkości
+                scroller.scrollPosition += scroller.speed;
+                
+                // Jeśli dotarliśmy do końca oryginalnej zawartości
+                if (scroller.scrollPosition >= scroller.contentHeight) {
+                    // Wprowadź krótką pauzę przed zapętleniem
+                    scroller.isPaused = true;
+                    scroller.pauseStartTime = Date.now();
+                    
+                    // Nie resetujemy tutaj pozycji - zrobimy to po pauzie
+                } else {
+                    // Zastosuj pozycję przewijania z użyciem transform
+                    scroller.contentEl.style.transform = `translateY(-${scroller.scrollPosition}px)`;
+                    
+                    // Aktualizacja pozycji klonów dla płynnego efektu
+                    scroller.clones.forEach((clone, index) => {
+                        // Nie musimy aktualizować transformacji klonów, bo ich pozycja jest ustalona przy pomocy "top"
+                        // Jeśli chcielibyśmy dodać jakieś efekty do klonów, moglibyśmy to zrobić tutaj
+                    });
+                }
+            });
+            
+            // Kontynuuj animację
+            requestAnimationFrame(animateScrolling);
+        }
+        
+        // Zmodyfikowana funkcja renderowania zastępstw
+        function renderSubstitutions(substitutionsByClass) {
+            // Wyczyść wszystkie kolumny
+            document.getElementById('classes-1-2').innerHTML = '';
+            document.getElementById('classes-3-4').innerHTML = '';
+            document.getElementById('classes-lsp').innerHTML = '';
+            
+            let totalCount = 0;
+            
+            // Przetwarzanie danych dla każdej klasy
+            Object.keys(substitutionsByClass).forEach(classKey => {
+                const classData = substitutionsByClass[classKey];
+                
+                // Tworzenie karty dla klasy
+                const card = createClassCard(classData);
+                
+                // Dodaj kartę do odpowiedniej kolumny
+                if (classData.isArtClass) {
+                    document.getElementById('classes-lsp').appendChild(card);
+                } else {
+                    const classNumber = parseInt(classData.displayName.match(/\d+/)[0], 10);
+                    if (classNumber <= 2) {
+                        document.getElementById('classes-1-2').appendChild(card);
+                    } else {
+                        document.getElementById('classes-3-4').appendChild(card);
+                    }
+                }
+                
+                totalCount += classData.items.length;
+            });
+            
+            // Ukryj wskaźnik ładowania
+            const loadingIndicator = document.querySelector('.loading-indicator');
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+            }
+            
+            // Pokaż komunikat o braku zastępstw, jeśli potrzeba
+            if (totalCount === 0) {
+                document.getElementById('no-substitutions').classList.remove('hidden');
+            } else {
+                document.getElementById('no-substitutions').classList.add('hidden');
+                
+                // Reinicjalizuj scrollery po dodaniu nowej zawartości
+                setTimeout(initializeScrollers, 300);
+            }
+        }
+        
+        // Funkcja tworząca kartę dla klasy
+        function createClassCard(classData) {
+            const card = document.createElement('div');
+            card.className = 'sub-card';
+            
+            // Tworzenie nagłówka karty
+            const cardHeader = document.createElement('div');
+            cardHeader.className = 'sub-card-header';
+            
+            const className = document.createElement('div');
+            className.className = 'sub-class-name';
+            
+            // Nazwa klasy
+            className.textContent = classData.displayName;
+            
+            // Dodaj znacznik LSP dla klas artystycznych
+            if (classData.isArtClass) {
+                const artBadge = document.createElement('span');
+                artBadge.className = 'class-badge art-badge';
+                artBadge.textContent = 'LSP';
+                className.appendChild(artBadge);
+            }
+            
+            cardHeader.appendChild(className);
+            card.appendChild(cardHeader);
+            
+            // Tworzenie elementów zastępstw
+            classData.items.forEach(row => {
+                const subType = identifySubstitutionType(row);
+                const subItem = document.createElement('div');
+                subItem.className = `sub-item ${subType}`;
+                
+                // Tworzenie nagłówka zastępstwa (numer lekcji i znaczniki)
+                const subHeader = document.createElement('div');
+                subHeader.className = 'sub-header';
+                
+                // Numer lekcji
+                if (row.Lekcja) {
+                    const lesson = document.createElement('div');
+                    lesson.className = 'sub-lesson';
+                    lesson.textContent = `Lekcja ${row.Lekcja}`;
+                    subHeader.appendChild(lesson);
+                }
+                
+                // Kontener na znaczniki
+                const badges = document.createElement('div');
+                badges.className = 'sub-badges';
+                
+                // Znacznik typu
+                const typeBadge = document.createElement('span');
+                typeBadge.className = `sub-badge type-badge ${subType}`;
+                typeBadge.textContent = getTypeBadgeText(subType);
+                badges.appendChild(typeBadge);
+                
+                // Znacznik sali, jeśli dostępny
+                if (row.Sala) {
+                    const roomBadge = document.createElement('span');
+                    roomBadge.className = 'sub-badge room-badge';
+                    roomBadge.textContent = `Sala ${row.Sala}`;
+                    badges.appendChild(roomBadge);
+                }
+                
+                subHeader.appendChild(badges);
+                subItem.appendChild(subHeader);
+                
+                // Tworzenie sekcji zawartości
+                const content = document.createElement('div');
+                content.className = 'sub-content';
+                
+                // Przedmiot
+                const subject = document.createElement('div');
+                subject.className = 'sub-subject';
+                
+                const odwołane = (subType === "cancelled");
+                const przeniesienie = (subType === "moved");
+                const przedmiot = applySubjectShortcuts(row.Przedmiot || '');
+                
+                if (odwołane || przeniesienie) {
+                    subject.innerHTML = `<s>${przedmiot}</s>`;
+                } else {
+                    subject.textContent = przedmiot;
+                }
+                
+                content.appendChild(subject);
+                
+                // Zastępstwo nauczyciela
+                const teacherDiv = document.createElement('div');
+                teacherDiv.className = 'sub-teacher';
+                
+                const nauczyciel = row["Nauczyciel/wakat"] || '';
+                const zastępca = row.Zastępca || '';
+                const nauczycielShort = shortenName(nauczyciel);
+                const zastępcaShort = shortenName(zastępca);
+                
+                if (przeniesienie) {
+                    if (row.Uwagi && row.Uwagi.trim() !== '') {
+                        teacherDiv.innerHTML = `<s>${nauczycielShort}</s> &rarr; ${row.Uwagi}`;
+                    } else {
+                        teacherDiv.innerHTML = `<s>${nauczycielShort}</s>`;
+                    }
+                } else if (odwołane) {
+                    teacherDiv.innerHTML = `<s>${nauczycielShort}</s>`;
+                } else if (nauczyciel && zastępca) {
+                    teacherDiv.innerHTML = `<s>${nauczycielShort}</s> &rarr; ${zastępcaShort}`;
+                } else {
+                    teacherDiv.textContent = nauczycielShort || zastępcaShort;
+                }
+                
+                content.appendChild(teacherDiv);
+                
+                // Dodaj uwagi, jeśli dostępne
+                if (row.Uwagi && row.Uwagi.trim() !== '' && !przeniesienie) {
+                    const note = document.createElement('div');
+                    note.className = 'note';
+                    note.textContent = `Uwaga: ${row.Uwagi}`;
+                    content.appendChild(note);
+                }
+                
+                // Dodaj automatyczną sugestię zastępstwa, jeśli dotyczy
+                const autoSubstitution = findAutoSubstitution(przedmiot, zastępca, odwołane, przeniesienie);
+                if (autoSubstitution) {
+                    const autoNote = document.createElement('div');
+                    autoNote.className = 'note';
+                    autoNote.textContent = autoSubstitution;
+                    content.appendChild(autoNote);
+                }
+                
+                subItem.appendChild(content);
+                card.appendChild(subItem);
+            });
+            
+            return card;
+        }
+    </script>
+</body>
+</html>

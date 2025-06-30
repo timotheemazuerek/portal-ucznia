@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Zastępstwa - Zmiana W Planie - Tischner Wodzisław</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="sub.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+    <meta name="theme-color" content="#4A90E2">
+</head>
+<body>
+    <header>
+        <div class="logo">Tischner</div>
+        <div class="header-actions">
+            <button class="header-button" id="calendar-button">
+                <i class="fas fa-calendar-alt"></i>
+            </button>
+            <button class="header-button" id="add-button" onclick="window.location.href='upload.html'">
+                <i class="fas fa-plus"></i>
+            </button>  
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="date-selector">
+            <button class="date-btn active" data-offset="0">Dzisiaj</button>
+            <button class="date-btn" data-offset="1">Jutro</button>
+            <button class="date-btn" data-offset="2">Pojutrze</button>
+        </div>
+
+        <div class="section-title">Zastępstwa <span id="selected-date" class="selected-date"></span></div>
+
+
+        <div id="substitutions-container" class="substitutions-container">
+            <!-- Substitutions will be loaded here -->
+            <div class="loading-indicator">
+                <div class="spinner"></div>
+                <p>Ładowanie zastępstw...</p>
+            </div>
+        </div>
+
+        <div id="no-substitutions" class="no-substitutions hidden">
+            <i class="fas fa-check-circle"></i>
+            <p>Brak zastępstw na wybrany dzień</p>
+        </div>
+    </div>
+
+    <!-- Navigation Dock -->
+    <nav class="dock">
+        <a href="index.html" class="dock-item">
+            <div class="dock-icon"><i class="fas fa-home"></i></div>
+            <div class="dock-text">Główna</div>
+        </a>
+        <a href="substitutions.html" class="dock-item active">
+            <div class="dock-icon"><i class="fas fa-exchange-alt"></i></div>
+            <div class="dock-text">Zastępstwa</div>
+        </a>
+        <a href="schedule.html" class="dock-item">
+            <div class="dock-icon"><i class="fas fa-calendar-alt"></i></div>
+            <div class="dock-text">Plan</div>
+        </a>
+    </nav>
+
+    <!-- Overlay for Side Menu -->
+    <div id="overlay" class="overlay"></div>
+
+    <!-- Install Banner -->
+    <div id="install-banner" class="install-banner">
+        <div class="install-text">
+            <div class="install-title">Zainstaluj aplikację</div>
+            <div class="install-subtitle">Dodaj ZmianaWPlanie do ekranu głównego</div>
+        </div>
+        <button id="install-app" class="install-btn">Instaluj</button>
+        <button id="close-install" class="close-install">×</button>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <script src="scripts/sub.js"></script>
+</body>
+</html>

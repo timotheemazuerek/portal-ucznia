@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zmiana W Planie - Tischner Wodzisław - Prześlij Pliki - Administrator</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap');
+    body { font-family: 'Montserrat', sans-serif; padding: 20px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    input, button { display: block; margin: 10px 0; font-size: 1em; }
+    .file-list { margin-top: 20px; }
+    .file-item { display: flex; justify-content: space-between; padding: 10px; border: 1px solid #ccc; margin-bottom: 5px; border-radius: 20px;}
+    .file-item button { background: red; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 20px;}
+    .hidden { display: none; }
+    #email, #password {
+        border-radius: 300px;
+        height: 34px;
+        width: 300px;
+        padding-left: 20px;
+        border-style: solid;
+        border-color: #4A90E2;
+    }
+    h1 {
+        font-size: 3em;
+        color: #4A90E2;
+    }
+    #loginBtn, #uploadBtn {
+        height: 34px;
+        width: 200px;
+        justify-content: center;
+        align-items: center;
+        background-color: #4A90E2;
+        color: #ffffff;
+        cursor: pointer;
+        border-style: solid;
+        border-radius: 300px;
+        border-color: #4A90E2;
+    }
+    #datePicker {
+        height: 34px;
+        width: 200px;
+        justify-content: center;
+        align-items: center;
+        color: #4A90E2;
+        border-style: none;
+        font-size: 2em;
+        font-weight: 700;
+    }
+    #logoutBtn {
+        height: 34px;
+        width: 200px;
+        justify-content: center;
+        align-items: center;
+        background-color: #ff4d4d;
+        color: #ffffff;
+        cursor: pointer;
+        border-style: solid;
+        border-radius: 300px;
+        border-color: #ff4d4d;
+        margin-top: 20px;
+    }
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+      display: none;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .status-message {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .success { background-color: #d4edda; color: #155724; }
+    .error { background-color: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>prześlij zastępstwa <i><br>zmianawplanie.pl 1.0</i><br>ZSP Wodzisław Śląski</h1>
+    <div id="statusMessage" class="status-message hidden"></div>
+    
+    <div id="loginSection">
+      <input type="email" id="email" placeholder="email" autocomplete="email">
+      <input type="password" id="password" placeholder="hasło" autocomplete="current-password">
+      <p>jeżeli zapomniałeś/aś hasło, skontaktuj się z administratorem zmianawplanie.pl poprzez adres email: kontakt@zmianawplanie.pl. odpowiemy tak szybko, jak to możliwe.</p>
+      <button id="loginBtn"><span class="spinner" id="loginSpinner"></span>zaloguj się</button>
+    </div>
+    
+    <div id="uploadSection" class="hidden">
+      <label for="datePicker">wybierz datę:</label>
+      <input type="date" id="datePicker">
+      <label for="fileInput">wybierz plik Excel:</label>
+      <input type="file" id="fileInput" accept=".xlsx, .xls">
+      <button id="uploadBtn"><span class="spinner" id="uploadSpinner"></span>prześlij</button>
+      <button id="logoutBtn">wyloguj się</button>
+    </div>
+    
+    <div id="fileManager" class="file-list hidden">
+      <h2>menedżer plików</h2>
+      <div id="fileList"></div>
+    </div>
+  </div>
+
+  <script>
+    // Funkcja do konfiguracji Firebase będzie wczytana z zewnętrznego pliku
+    document.addEventListener('DOMContentLoaded', function() {
+      // Ładowanie skryptów Firebase
+      const loadScript = (src) => {
+        return new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = src;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+          document.head.appendChild(script);
+        });
+      };
+
+      // Ładowanie skryptów w odpowiedniej kolejności
+      Promise.all([
+        loadScript('https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js'),
+        loadScript('https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js')
+      ]).then(() => {
+        loadScript('js/firebase-config.js').then(() => {
+          initApp();
+        });
+      }).catch(error => {
+        showStatus('Błąd ładowania skryptów Firebase. Odśwież stronę.', 'error');
+      });
+    });
+
+    function initApp() {
+      // Ta funkcja będzie wywołana po załadowaniu wszystkich skryptów
+      const auth = firebase.auth();
+
+      function showStatus(message, type) {
+        const statusEl = document.getElementById('statusMessage');
+        statusEl.textContent = message;
+        statusEl.className = 'status-message ' + type;
+        statusEl.classList.remove('hidden');
+        setTimeout(() => {
+          statusEl.classList.add('hidden');
+        }, 5000);
+      }
+
+      // Obsługa stanu uwierzytelnienia
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+          document.getElementById("loginSection").classList.add("hidden");
+          document.getElementById("uploadSection").classList.remove("hidden");
+          document.getElementById("fileManager").classList.remove("hidden");
+          loadFileList();
+        } else {
+          document.getElementById("loginSection").classList.remove("hidden");
+          document.getElementById("uploadSection").classList.add("hidden");
+          document.getElementById("fileManager").classList.add("hidden");
+        }
+      });
+
+      // Logowanie
+      document.getElementById('loginBtn').addEventListener('click', function() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        
+        if (!email || !password) {
+          showStatus('Wprowadź email i hasło', 'error');
+          return;
+        }
+
+        const loginSpinner = document.getElementById('loginSpinner');
+        loginSpinner.style.display = 'inline-block';
+        
+        auth.signInWithEmailAndPassword(email, password)
+          .then((userCredential) => {
+            showStatus('Zalogowano pomyślnie', 'success');
+          })
+          .catch((error) => {
+            showStatus('Błąd logowania: ' + error.message, 'error');
+          })
+          .finally(() => {
+            loginSpinner.style.display = 'none';
+          });
+      });
+
+      // Przesyłanie pliku
+      document.getElementById('uploadBtn').addEventListener('click', function() {
+        if (!auth.currentUser) {
+          showStatus('Musisz być zalogowany, aby przesłać plik', 'error');
+          return;
+        }
+
+        const date = document.getElementById('datePicker').value;
+        const file = document.getElementById('fileInput').files[0];
+
+        if (!date) {
+          showStatus('Wybierz datę', 'error');
+          return;
+        }
+        
+        if (!file) {
+          showStatus('Wybierz plik Excel', 'error');
+          return;
+        }
+
+        // Sprawdzenie rozszerzenia pliku
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+        if (fileExtension !== 'xlsx' && fileExtension !== 'xls') {
+          showStatus('Dozwolone są tylko pliki Excel (.xlsx, .xls)', 'error');
+          return;
+        }
+
+        const uploadSpinner = document.getElementById('uploadSpinner');
+        uploadSpinner.style.display = 'inline-block';
+
+        const formData = new FormData();
+        formData.append('date', date);
+        formData.append('file', file);
+
+        auth.currentUser.getIdToken().then(idToken => {
+          formData.append('idToken', idToken);
+
+          fetch('upload.php', {  
+            method: 'POST',
+            body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              showStatus('Błąd: ' + data.error, 'error');
+            } else {
+              showStatus('Plik przesłany pomyślnie', 'success');
+              document.getElementById('fileInput').value = '';
+              loadFileList();
+            }
+          })
+          .catch(error => {
+            showStatus('Błąd podczas przesyłania pliku', 'error');
+            console.error("Błąd przesyłania:", error);
+          })
+          .finally(() => {
+            uploadSpinner.style.display = 'none';
+          });
+        });
+      });
+
+      // Wylogowanie
+      document.getElementById('logoutBtn').addEventListener('click', function() {
+        auth.signOut().then(() => {
+          showStatus('Wylogowano pomyślnie', 'success');
+        }).catch((error) => {
+          showStatus('Błąd podczas wylogowywania', 'error');
+        });
+      });
+
+      // Pobieranie listy plików
+      function loadFileList() {
+        if (!auth.currentUser) return;
+
+        auth.currentUser.getIdToken().then(idToken => {
+          fetch('file_list.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken })
+          })
+          .then(response => response.json())
+          .then(files => {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            
+            if (files.error) {
+              showStatus('Błąd: ' + files.error, 'error');
+              return;
+            }
+            
+            if (files.length === 0) {
+              fileList.innerHTML = '<p>Brak dostępnych plików</p>';
+              return;
+            }
+            
+            files.forEach(file => {
+              const fileItem = document.createElement('div');
+              fileItem.className = 'file-item';
+              
+              // Wyświetl datę w czytelnym formacie
+              const datePart = file.split('.')[0]; // Pobierz część z datą (bez rozszerzenia)
+              
+              fileItem.innerHTML = `
+                <span>${datePart}</span>
+                <button onclick="deleteFile('${file}')">Usuń</button>
+              `;
+              fileList.appendChild(fileItem);
+            });
+          })
+          .catch(error => {
+            console.error("Błąd ładowania listy plików:", error);
+            showStatus('Błąd ładowania listy plików', 'error');
+          });
+        });
+      }
+
+      // Usuwanie pliku - dostępne globalnie
+      window.deleteFile = function(fileName) {
+        if (!auth.currentUser) {
+          showStatus('Musisz być zalogowany, aby usunąć plik', 'error');
+          return;
+        }
+
+        if (!confirm(`Czy na pewno chcesz usunąć plik ${fileName}?`)) {
+          return;
+        }
+
+        auth.currentUser.getIdToken().then(idToken => {
+          fetch('delete_file.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileName, idToken })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              showStatus('Błąd: ' + data.error, 'error');
+            } else {
+              showStatus('Plik usunięty pomyślnie', 'success');
+              loadFileList();
+            }
+          })
+          .catch(error => {
+            console.error("Błąd usuwania pliku:", error);
+            showStatus('Błąd podczas usuwania pliku', 'error');
+          });
+        });
+      };
+    }
+  </script>
+</body>
+</html>
